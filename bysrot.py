@@ -1,9 +1,10 @@
 from PyQt6.QtWidgets import QApplication
 
-from src import Prueba
+from src.gui.mainWindow import MainWindow
+
 
 class BysRot():
     def __init__(self):
         self.app = QApplication([])
-        self.prueba = Prueba()
+        self.mainWindow = MainWindow()
         self.app.exec()
