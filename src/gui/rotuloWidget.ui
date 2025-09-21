@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>600</width>
-    <height>316</height>
+    <height>373</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -51,6 +51,19 @@
              <pixmap>../../media/logo-byspro.png</pixmap>
             </property>
             <property name="scaledContents">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QCheckBox" name="checkSyncDate">
+            <property name="cursor">
+             <cursorShape>PointingHandCursor</cursorShape>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="checked">
              <bool>true</bool>
             </property>
            </widget>
@@ -124,9 +137,17 @@
               </item>
               <item>
                <widget class="QLineEdit" name="inputDate">
+                <property name="font">
+                 <font>
+                  <pointsize>14</pointsize>
+                 </font>
+                </property>
                 <property name="styleSheet">
                  <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
+                </property>
+                <property name="text">
+                 <string/>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignmentFlag::AlignCenter</set>
@@ -157,6 +178,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
           </item>
           <item>
            <widget class="QLineEdit" name="inputMateriaPrima">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
             <property name="styleSheet">
              <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -188,6 +214,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="inputBatchMateriaPrima">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -217,6 +248,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="inputCodeMateriaPrima">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -250,6 +286,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="inputNumControl">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -284,7 +325,12 @@ border-bottom: 1px solid black; background-color: transparent;</string>
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="lineEdit_46">
+             <widget class="QLineEdit" name="inputTara">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -318,6 +364,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="inputPesoNeto">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -346,7 +397,12 @@ border-bottom: 1px solid black; background-color: transparent;</string>
              </widget>
             </item>
             <item>
-             <widget class="QLineEdit" name="lineEdit_47">
+             <widget class="QLineEdit" name="inputPesoBruto">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -378,6 +434,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
           </item>
           <item>
            <widget class="QLineEdit" name="inputName">
+            <property name="font">
+             <font>
+              <pointsize>12</pointsize>
+             </font>
+            </property>
             <property name="styleSheet">
              <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -409,6 +470,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="inputCode">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -438,6 +504,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="inputBatch">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -471,6 +542,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="inputSignature">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>
@@ -500,6 +576,11 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </item>
             <item>
              <widget class="QLineEdit" name="lineEdit_50">
+              <property name="font">
+               <font>
+                <pointsize>12</pointsize>
+               </font>
+              </property>
               <property name="styleSheet">
                <string notr="true">border: none;
 border-bottom: 1px solid black; background-color: transparent;</string>

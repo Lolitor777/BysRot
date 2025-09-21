@@ -44,9 +44,8 @@ class MainWindow(QDialog):
         try:
             with open(ruta, "r", encoding="utf-8") as f:
                 template = json.load(f)
-
             
-            rotWindow = RotWindow(template)
+            rotWindow = RotWindow(template, loadedPath=ruta)
             rotWindow.exec()
 
         except Exception as e:
