@@ -5,9 +5,11 @@ from PyQt6.QtCore import Qt
 
 import json
 
+
 from src.utils.generarPdf import generar_pdf
 from src.utils.storage import guardarPlantilla
 from src.gui.rotuloWidget import RotuloWidget
+
 
 
 class RotWindow(QDialog):
@@ -57,11 +59,15 @@ class RotWindow(QDialog):
         self.btnSave.setFixedSize(150, 40)
         self.btnSave.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btnSave.clicked.connect(self.saveTemplate)
+        self.btnSave.setDefault(False)
+        self.btnSave.setAutoDefault(False)
         
         self.btnPdf = QPushButton("Generar PDF")
         self.btnPdf.setFixedSize(150, 40)
         self.btnPdf.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btnPdf.clicked.connect(self.generatePdf)
+        self.btnPdf.setDefault(False)
+        self.btnPdf.setAutoDefault(False)
 
         btnLayout.addWidget(self.btnSave)
         btnLayout.addWidget(self.btnPdf)
@@ -91,12 +97,16 @@ class RotWindow(QDialog):
             if rot_data:
                 if hasattr(rotulo, "inputMateriaPrima"):
                     rotulo.inputMateriaPrima.setText(rot_data.get("materiaPrima", ""))
-                if hasattr(rotulo, "inputBatchMateriaPrima"):
-                    rotulo.inputBatchMateriaPrima.setText(rot_data.get("loteMateriaPrima", ""))
+                
                 if hasattr(rotulo, "inputCodeMateriaPrima"):
-                    rotulo.inputCodeMateriaPrima.setText(rot_data.get("codigoMateriaPrima", ""))
+                    codigo = rot_data.get("codigoMateriaPrima", "")
+                    rotulo.inputCodeMateriaPrima.setText(codigo)
+                    if codigo and codigo != "1000":  
+                        rotulo.autofillFromSAP()
+
                 if hasattr(rotulo, "inputNumControl"):
                     rotulo.inputNumControl.setText(rot_data.get("numControl", ""))
+                
                 if hasattr(rotulo, "inputPesoNeto"):
                     rotulo.inputPesoNeto.setText(rot_data.get("peso", ""))
 
@@ -217,7 +227,7 @@ class RotWindow(QDialog):
                 "Éxito",
                 f"La plantilla se guardó correctamente ✅"
             )
-
+            self.btnSave.setEnabled(False)
         
     def syncDate(self, newDate):
         sender = self.sender()
@@ -245,3 +255,28 @@ class RotWindow(QDialog):
     def syncSignature(self, newSignature):
         for rotulo in self.rotulos:
             rotulo.setSignature(newSignature)
+
+    def closeEvent(self, event):
+        if self.btnSave.isEnabled():
+            msgBox = QMessageBox(self)
+            msgBox.setWindowTitle("Salir")
+            msgBox.setText("Tienes cambios sin guardar. ¿Qué deseas hacer?")
+            msgBox.setIcon(QMessageBox.Icon.Warning)
+
+            btnGuardar = msgBox.addButton("Guardar y salir", QMessageBox.ButtonRole.AcceptRole)
+            btnSalir = msgBox.addButton("Salir sin guardar", QMessageBox.ButtonRole.DestructiveRole)
+            btnCancelar = msgBox.addButton("Cancelar", QMessageBox.ButtonRole.RejectRole)
+
+            msgBox.setDefaultButton(btnGuardar)
+            msgBox.exec()
+
+            clicked = msgBox.clickedButton()
+            if clicked == btnGuardar:
+                self.saveTemplate()
+                event.accept()
+            elif clicked == btnSalir:
+                event.accept()
+            else:  
+                event.ignore()
+        else:
+            event.accept()

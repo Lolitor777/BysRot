@@ -3,6 +3,7 @@ from PyQt6.QtGui import QIntValidator
 from PyQt6 import uic
 
 
+
 class CreateWindow(QDialog):
     def __init__(self):
         super().__init__()

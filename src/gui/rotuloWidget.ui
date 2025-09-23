@@ -180,7 +180,7 @@ border-bottom: 1px solid black; background-color: transparent;</string>
            <widget class="QLineEdit" name="inputMateriaPrima">
             <property name="font">
              <font>
-              <pointsize>12</pointsize>
+              <pointsize>10</pointsize>
              </font>
             </property>
             <property name="styleSheet">
@@ -216,7 +216,7 @@ border-bottom: 1px solid black; background-color: transparent;</string>
              <widget class="QLineEdit" name="inputBatchMateriaPrima">
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>10</pointsize>
                </font>
               </property>
               <property name="styleSheet">
@@ -288,7 +288,7 @@ border-bottom: 1px solid black; background-color: transparent;</string>
              <widget class="QLineEdit" name="inputNumControl">
               <property name="font">
                <font>
-                <pointsize>12</pointsize>
+                <pointsize>10</pointsize>
                </font>
               </property>
               <property name="styleSheet">

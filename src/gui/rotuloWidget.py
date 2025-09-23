@@ -1,7 +1,17 @@
-from PyQt6.QtWidgets import QWidget
+from PyQt6.QtWidgets import QWidget, QMessageBox
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIntValidator
 from PyQt6 import uic
+
+from src.utils.sapService import SAPService
+
+
+sap = SAPService(
+    user="manager",
+    password="2609",
+    company_db="PRUEBAS_AVANTIS_MAY14",
+    base_url="https://byspro.heinsohncloud.com.co:50000/b1s/v2"
+)
 
 class RotuloWidget(QWidget):
 
@@ -19,6 +29,11 @@ class RotuloWidget(QWidget):
         uic.loadUi('src/gui/rotuloWidget.ui', self)
 
         
+        if hasattr(self, 'inputCodeMateriaPrima'):
+            self.inputCodeMateriaPrima.setText("1000")
+            self.inputCodeMateriaPrima.returnPressed.connect(self.autofillFromSAP)
+            self.inputCodeMateriaPrima.editingFinished.connect(self.autofillFromSAP)
+
         if hasattr(self, 'inputDate'):
             self.inputDate.textChanged.connect(self.emitDate)
 
@@ -50,6 +65,28 @@ class RotuloWidget(QWidget):
             self.inputTara.textChanged.connect(self.updatePesoBruto)
             self.inputPesoNeto.textChanged.connect(self.updatePesoBruto)
 
+    def autofillFromSAP(self):
+        codigo = self.inputCodeMateriaPrima.text().strip()
+        if not codigo:
+            return
+        try:
+            data = sap.get_item_and_batches(codigo)
+            if data:
+                self.inputMateriaPrima.setText(data["nombre"])
+                self.inputBatchMateriaPrima.setText(data["lote"])
+                self.inputNumControl.setText(data["fechaIngreso"])
+
+                if len(codigo) >= 4:
+                    ultimos_4 = codigo[-4:]  
+                    fecha = data["fechaIngreso"] or ""
+                    num_control = f"{ultimos_4}{fecha}"
+                    if hasattr(self, "inputNumControl"):
+                        self.inputNumControl.setText(num_control)
+
+            else:
+                QMessageBox.warning(self, "SAP", f"No se encontró el código {codigo} en SAP")
+        except Exception as e:
+            QMessageBox.critical(self, "Error SAP", str(e))
 
     def emitDate(self, text: str):
         self.dateChanged.emit(text)
