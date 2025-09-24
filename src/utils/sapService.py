@@ -41,7 +41,6 @@ class SAPService:
             return None
 
         item = item_data["value"][0]
-
         
         batches_url = f"{self.base_url}/BatchNumberDetails?$filter=ItemCode eq '{item_code}'&$orderby=AdmissionDate desc&$top={top}"
         batches_resp = self.session.get(batches_url, verify=False)

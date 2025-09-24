@@ -21,12 +21,17 @@ class RotuloWidget(QWidget):
     batchChanged = pyqtSignal(str)
     signatureChanged = pyqtSignal(str)
     useGlobalDate = pyqtSignal(bool)
+    deleteRequested = pyqtSignal(QWidget)
     
+
 
     def __init__(self, numberRot):
         super().__init__()
         self.numberRot = numberRot
         uic.loadUi('src/gui/rotuloWidget.ui', self)
+
+        self.btnDelete.setDefault(False)
+        self.btnDelete.setAutoDefault(False)
 
         
         if hasattr(self, 'inputCodeMateriaPrima'):
@@ -64,6 +69,10 @@ class RotuloWidget(QWidget):
         if hasattr(self, 'inputTara') and hasattr(self, 'inputPesoNeto') and hasattr(self, 'inputPesoBruto'):
             self.inputTara.textChanged.connect(self.updatePesoBruto)
             self.inputPesoNeto.textChanged.connect(self.updatePesoBruto)
+        
+        if hasattr(self, "btnDelete"):
+            self.btnDelete.clicked.connect(self.requestDelete)
+
 
     def autofillFromSAP(self):
         codigo = self.inputCodeMateriaPrima.text().strip()
@@ -138,8 +147,11 @@ class RotuloWidget(QWidget):
 
     def usesGlobalDate(self):
         return hasattr(self, 'checkUseGlobalDate') and self.checkUseGlobalDate.isChecked()
-    
+
     def isDateSynced(self):
         if hasattr(self, "checkSyncDate"):
             return self.checkSyncDate.isChecked()
         return True
+    
+    def requestDelete(self):
+        self.deleteRequested.emit(self)

@@ -32,7 +32,7 @@ class RotWindow(QDialog):
         scrollArea = QScrollArea(self)
         scrollArea.setWidgetResizable(True)
         scrollWidget = QWidget()
-        scrollLayout = QVBoxLayout(scrollWidget)
+        self.scrollLayout = QVBoxLayout(scrollWidget)
 
         if isinstance(data.get("rotulos"), str) or isinstance(data.get("rotulos"), int):
             try:
@@ -45,8 +45,8 @@ class RotWindow(QDialog):
             comunes = data.get("comunes", {})
             rotulos = data.get("rotulos", [])
 
-        scrollLayout.addStretch()
-        scrollWidget.setLayout(scrollLayout)
+        self.scrollLayout.addStretch()
+        scrollWidget.setLayout(self.scrollLayout)
         scrollArea.setWidget(scrollWidget)
         
         mainLayout = QVBoxLayout(self)
@@ -69,6 +69,14 @@ class RotWindow(QDialog):
         self.btnPdf.setDefault(False)
         self.btnPdf.setAutoDefault(False)
 
+        self.btnAdd = QPushButton("Añadir rótulo")
+        self.btnAdd.setFixedSize(150, 40)
+        self.btnAdd.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btnAdd.setDefault(False)
+        self.btnAdd.setAutoDefault(False)
+        self.btnAdd.clicked.connect(self.addRotulo)
+        btnLayout.addWidget(self.btnAdd)
+
         btnLayout.addWidget(self.btnSave)
         btnLayout.addWidget(self.btnPdf)
 
@@ -81,8 +89,10 @@ class RotWindow(QDialog):
 
         for i, rot_data in enumerate(rotulos, start=1):
             rotulo = RotuloWidget(i)
+            rotulo.deleteRequested.connect(self.removeRotulo)
             self.rotulos.append(rotulo)
-            scrollLayout.addWidget(rotulo)
+            self.scrollLayout.insertWidget(self.scrollLayout.count() - 1, rotulo)
+            self.scrollLayout.addWidget(rotulo)
 
             self._connectChanges(rotulo)
 
@@ -157,7 +167,6 @@ class RotWindow(QDialog):
     def enableSave(self):
         self.btnSave.setEnabled(True)
 
-   
 
     def getTemplateData(self):
         if not self.rotulos:
@@ -228,10 +237,67 @@ class RotWindow(QDialog):
                 f"La plantilla se guardó correctamente ✅"
             )
             self.btnSave.setEnabled(False)
-        
+
+    def addRotulo(self, rot_data=None, comunes=None):
+    # Crear nuevo rótulo con número consecutivo
+        rotulo = RotuloWidget(len(self.rotulos) + 1)
+        self.rotulos.append(rotulo)
+
+        # Agregarlo al final del layout (después del stretch siempre)
+        self.scrollLayout.addWidget(rotulo)
+
+        # Conectar señales
+        self._connectChanges(rotulo)
+        rotulo.deleteRequested.connect(self.removeRotulo)
+
+        # 🔥 Obtener campos comunes dinámicamente (del primer rótulo si existe)
+        if self.rotulos and not comunes:
+            base = self.rotulos[0]
+            comunes = {
+                "fecha": base.inputDate.text() if hasattr(base, "inputDate") else "",
+                "nombre": base.inputName.text() if hasattr(base, "inputName") else "",
+                "codigo": base.inputCode.text() if hasattr(base, "inputCode") else "",
+                "lote": base.inputBatch.text() if hasattr(base, "inputBatch") else "",
+                "firma": base.inputSignature.text() if hasattr(base, "inputSignature") else ""
+            }
+
+        # Rellenar campos comunes
+        if comunes:
+            if rotulo.isDateSynced():
+                rotulo.setDate(comunes.get("fecha", ""))
+            rotulo.setName(comunes.get("nombre", ""))
+            rotulo.setCode(comunes.get("codigo", ""))
+            rotulo.setBatch(comunes.get("lote", ""))
+            rotulo.setSignature(comunes.get("firma", ""))
+
+        # Rellenar datos específicos si vienen de plantilla
+        if rot_data:
+            if hasattr(rotulo, "inputMateriaPrima"):
+                rotulo.inputMateriaPrima.setText(rot_data.get("materiaPrima", ""))
+            if hasattr(rotulo, "inputBatchMateriaPrima"):
+                rotulo.inputBatchMateriaPrima.setText(rot_data.get("loteMateriaPrima", ""))
+            if hasattr(rotulo, "inputCodeMateriaPrima"):
+                rotulo.inputCodeMateriaPrima.setText(rot_data.get("codigoMateriaPrima", ""))
+            if hasattr(rotulo, "inputNumControl"):
+                rotulo.inputNumControl.setText(rot_data.get("numControl", ""))
+            if hasattr(rotulo, "inputPesoNeto"):
+                rotulo.inputPesoNeto.setText(rot_data.get("peso", ""))
+
+        # Habilitar guardar porque hubo cambio
+        self.enableSave()
+
+
+
+    def removeRotulo(self, rotulo):
+        """Quita un rótulo de la lista y del layout"""
+        if rotulo in self.rotulos:
+            self.rotulos.remove(rotulo)
+            rotulo.setParent(None)  # lo quita del layout
+            rotulo.deleteLater()
+            self.enableSave()
+
     def syncDate(self, newDate):
         sender = self.sender()
-
         if hasattr(sender, "isDateSynced") and sender.isDateSynced():
             for rotulo in self.rotulos:
                 if rotulo.isDateSynced():
@@ -240,6 +306,7 @@ class RotWindow(QDialog):
         else:
             pass
     
+
     def syncName(self, newName):
         for rotulo in self.rotulos:
             rotulo.setName(newName)

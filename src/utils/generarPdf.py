@@ -1,52 +1,3 @@
-# from PyQt6.QtPrintSupport import QPrinter
-# from PyQt6.QtGui import QPainter, QPageSize, QRegion
-# from PyQt6.QtCore import QRect, QPoint
-
-# def generar_pdf(ruta, rotulos):
-#     """
-#     Genera un PDF con los rótulos en un layout de 6 por página (2 columnas × 3 filas)
-#     en tamaño carta.
-#     """
-#     printer = QPrinter(QPrinter.PrinterMode.HighResolution)
-#     printer.setOutputFormat(QPrinter.OutputFormat.PdfFormat)
-#     printer.setOutputFileName(ruta)
-#     printer.setPageSize(QPageSize(QPageSize.PageSizeId.Letter))  # Carta
-#     printer.setFullPage(True)
-
-#     painter = QPainter(printer)
-
-#     page_rect = printer.pageRect(QPrinter.Unit.Point)
-#     cols, rows = 2, 3   # 2 columnas × 3 filas
-#     cell_width = page_rect.width() / cols
-#     cell_height = page_rect.height() / rows
-
-#     for i, rotulo in enumerate(rotulos):
-#         col = i % cols
-#         row = (i // cols) % rows
-
-#         if i > 0 and i % (cols * rows) == 0:
-#             printer.newPage()
-
-#         # Guardamos estado
-#         painter.save()
-
-#         # Trasladamos al origen de la celda
-#         x = page_rect.left() + col * cell_width
-#         y = page_rect.top() + row * cell_height
-#         painter.translate(x, y)
-
-#         # Escalamos el rótulo para que llene la celda
-#         scale_x = cell_width / rotulo.width()
-#         scale_y = cell_height / rotulo.height()
-#         painter.scale(scale_x, scale_y)
-
-#         # Renderizamos
-#         rotulo.render(painter, QPoint(), QRegion(rotulo.rect()))
-
-#         # Restauramos estado
-#         painter.restore()
-
-#     painter.end()
 
 from PyQt6.QtPrintSupport import QPrinter
 from PyQt6.QtGui import QPainter, QPageSize, QRegion
@@ -129,11 +80,17 @@ def generar_pdf(ruta, rotulos):
 
         if hasattr(rotulo, "checkSyncDate"):
             rotulo.checkSyncDate.hide()
+
+        if hasattr(rotulo, "btnDelete"):
+            rotulo.btnDelete.hide()
         
         rotulo.render(painter, QPoint(0, 0), QRegion(source_rect))
         
         if hasattr(rotulo, "checkSyncDate"):
             rotulo.checkSyncDate.show()
+
+        if hasattr(rotulo, "btnDelete"):
+            rotulo.btnDelete.show()
             
         painter.restore()
 
