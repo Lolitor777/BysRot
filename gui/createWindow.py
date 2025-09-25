@@ -1,13 +1,14 @@
 from PyQt6.QtWidgets import QDialog, QMessageBox
 from PyQt6.QtGui import QIntValidator
 from PyQt6 import uic
-
+from absoluteRouts import resource_path
+ 
 
 
 class CreateWindow(QDialog):
     def __init__(self):
         super().__init__()
-        uic.loadUi('src/gui/createWindow.ui', self)
+        uic.loadUi(resource_path('gui/createWindow.ui'), self)
         
         self.buttonCreate.clicked.connect(self.accept)
         self.buttonCancel.clicked.connect(self.reject)

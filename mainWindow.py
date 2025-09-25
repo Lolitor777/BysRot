@@ -3,15 +3,15 @@ import os
 import json
 from PyQt6.QtWidgets import (QApplication, QDialog, QFileDialog, QMessageBox)
 from PyQt6 import uic
-from src.gui.createWindow import CreateWindow
-from src.gui.rotWindow import RotWindow
-
+from gui.createWindow import CreateWindow
+from gui.rotWindow import RotWindow
+from absoluteRouts import resource_path
 
 
 class MainWindow(QDialog):
     def __init__(self):
         super().__init__()
-        uic.loadUi('src/gui/mainWindow.ui', self)
+        uic.loadUi(resource_path('gui/mainWindow.ui'), self)
 
         self.createTemplate.clicked.connect(self.openCreateWindow)
         self.loadTemplate.clicked.connect(self.openLoadTemplate)

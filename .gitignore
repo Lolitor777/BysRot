@@ -1,0 +1,15 @@
+
+dist/
+build/
+__pycache__/
+
+
+*.spec
+
+
+venv/
+.env/
+
+
+*.log
+*.tmp

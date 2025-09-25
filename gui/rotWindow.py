@@ -1,14 +1,14 @@
 
 from PyQt6.QtWidgets import (QDialog,  QVBoxLayout, QPushButton, QWidget, QScrollArea,
-                             QMessageBox, QSizePolicy, QHBoxLayout, QFileDialog)
+                             QMessageBox, QSizePolicy, QHBoxLayout, QFileDialog, QLabel)
 from PyQt6.QtCore import Qt
 
 import json
 
 
-from src.utils.generarPdf import generar_pdf
-from src.utils.storage import guardarPlantilla
-from src.gui.rotuloWidget import RotuloWidget
+from utils.generarPdf import generar_pdf
+from utils.storage import guardarPlantilla
+from gui.rotuloWidget import RotuloWidget
 
 
 
@@ -17,7 +17,6 @@ class RotWindow(QDialog):
         super().__init__()
         self.data = data
         self.loadedPath = loadedPath
-        
 
         self.setWindowTitle("BysRot")
         self.resize(600, 700)
@@ -28,6 +27,10 @@ class RotWindow(QDialog):
 
 
         self.rotulos = []
+
+        self.labelCount = QLabel(f"Total rótulos: 0", self)
+        self.labelCount.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
 
         scrollArea = QScrollArea(self)
         scrollArea.setWidgetResizable(True)
@@ -55,28 +58,29 @@ class RotWindow(QDialog):
         btnLayout = QHBoxLayout()
 
 
-        self.btnSave = QPushButton('Guardar plantilla')
+        self.btnSave = QPushButton('Guardar plantilla 📁')
         self.btnSave.setFixedSize(150, 40)
         self.btnSave.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btnSave.clicked.connect(self.saveTemplate)
         self.btnSave.setDefault(False)
         self.btnSave.setAutoDefault(False)
         
-        self.btnPdf = QPushButton("Generar PDF")
+        self.btnPdf = QPushButton("Generar PDF 📋")
         self.btnPdf.setFixedSize(150, 40)
         self.btnPdf.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btnPdf.clicked.connect(self.generatePdf)
         self.btnPdf.setDefault(False)
         self.btnPdf.setAutoDefault(False)
 
-        self.btnAdd = QPushButton("Añadir rótulo")
+        self.btnAdd = QPushButton("Añadir rótulo ➕")
         self.btnAdd.setFixedSize(150, 40)
         self.btnAdd.setCursor(Qt.CursorShape.PointingHandCursor)
         self.btnAdd.setDefault(False)
         self.btnAdd.setAutoDefault(False)
         self.btnAdd.clicked.connect(self.addRotulo)
+        
+        mainLayout.addWidget(self.labelCount)
         btnLayout.addWidget(self.btnAdd)
-
         btnLayout.addWidget(self.btnSave)
         btnLayout.addWidget(self.btnPdf)
 
@@ -133,6 +137,8 @@ class RotWindow(QDialog):
             rotulo.codeChanged.connect(self.syncCode)
             rotulo.batchChanged.connect(self.syncBatch)
             rotulo.signatureChanged.connect(self.syncSignature)
+
+            self.updateRotuloCount()
 
 
     def generatePdf(self):
@@ -285,6 +291,7 @@ class RotWindow(QDialog):
 
         # Habilitar guardar porque hubo cambio
         self.enableSave()
+        self.updateRotuloCount()
 
 
 
@@ -295,6 +302,7 @@ class RotWindow(QDialog):
             rotulo.setParent(None)  # lo quita del layout
             rotulo.deleteLater()
             self.enableSave()
+            self.updateRotuloCount()
 
     def syncDate(self, newDate):
         sender = self.sender()
@@ -322,6 +330,10 @@ class RotWindow(QDialog):
     def syncSignature(self, newSignature):
         for rotulo in self.rotulos:
             rotulo.setSignature(newSignature)
+
+    def updateRotuloCount(self):
+        total = len(self.rotulos)
+        self.labelCount.setText(f"Total rótulos: {total}")
 
     def closeEvent(self, event):
         if self.btnSave.isEnabled():

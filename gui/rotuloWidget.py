@@ -3,7 +3,8 @@ from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIntValidator
 from PyQt6 import uic
 
-from src.utils.sapService import SAPService
+from utils.sapService import SAPService
+from absoluteRouts import resource_path
 
 
 sap = SAPService(
@@ -28,7 +29,7 @@ class RotuloWidget(QWidget):
     def __init__(self, numberRot):
         super().__init__()
         self.numberRot = numberRot
-        uic.loadUi('src/gui/rotuloWidget.ui', self)
+        uic.loadUi(resource_path('gui/rotuloWidget.ui'), self)
 
         self.btnDelete.setDefault(False)
         self.btnDelete.setAutoDefault(False)
