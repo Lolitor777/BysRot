@@ -18,6 +18,8 @@ class RotWindow(QDialog):
         self.data = data
         self.loadedPath = loadedPath
 
+        print(data)
+
         self.setWindowTitle("BysRot")
         self.resize(600, 700)
 
@@ -90,55 +92,62 @@ class RotWindow(QDialog):
 
         self.btnSave.setEnabled(False)
 
+        materias_primas = data.get("rotulos", [])
 
-        for i, rot_data in enumerate(rotulos, start=1):
-            rotulo = RotuloWidget(i)
-            rotulo.deleteRequested.connect(self.removeRotulo)
-            self.rotulos.append(rotulo)
-            self.scrollLayout.insertWidget(self.scrollLayout.count() - 1, rotulo)
-            self.scrollLayout.addWidget(rotulo)
+        materias_primas = data.get("rotulos", [])
 
-            self._connectChanges(rotulo)
 
-            if comunes:
-                if rotulo.isDateSynced():  
-                    rotulo.setDate(comunes.get("fecha", ""))
-                rotulo.setName(comunes.get("nombre", ""))
-                rotulo.setCode(comunes.get("codigo", ""))
-                rotulo.setBatch(comunes.get("lote", ""))
-                rotulo.setSignature(comunes.get("firma", ""))
+        if materias_primas and isinstance(materias_primas[0], str):
+            for codigo_mp in materias_primas:
+                self.addRotulo(rot_data={"codigoMateriaPrima": codigo_mp})
 
-            if rot_data:
-                if hasattr(rotulo, "inputMateriaPrima"):
-                    rotulo.inputMateriaPrima.setText(rot_data.get("materiaPrima", ""))
-                
-                if hasattr(rotulo, "inputCodeMateriaPrima"):
-                    codigo = rot_data.get("codigoMateriaPrima", "")
-                    rotulo.inputCodeMateriaPrima.setText(codigo)
-                    if codigo and codigo != "1000":  
-                        rotulo.autofillFromSAP()
 
-                if hasattr(rotulo, "inputNumControl"):
-                    rotulo.inputNumControl.setText(rot_data.get("numControl", ""))
-                
-                if hasattr(rotulo, "inputPesoNeto"):
-                    rotulo.inputPesoNeto.setText(rot_data.get("peso", ""))
+        elif materias_primas and isinstance(materias_primas[0], dict):
+            for i, rot_data in enumerate(materias_primas, start=1):
+                rotulo = RotuloWidget(i)
+                rotulo.deleteRequested.connect(self.removeRotulo)
+                self.rotulos.append(rotulo)
+                self.scrollLayout.insertWidget(self.scrollLayout.count() - 1, rotulo)
+                self.scrollLayout.addWidget(rotulo)
 
-                if "fechaIndependiente" in rot_data and hasattr(rotulo, "checkSyncDate"):
-                    rotulo.checkSyncDate.setChecked(not rot_data["fechaIndependiente"])
-                if "fecha" in rot_data and hasattr(rotulo, "inputDate"):
-                    rotulo.inputDate.setText(rot_data.get("fecha", ""))
+                self._connectChanges(rotulo)
 
-            if hasattr(rotulo, "checkSyncDate"):
-                rotulo.checkSyncDate.stateChanged.connect(self.enableSave)
+                if comunes:
+                    if rotulo.isDateSynced():
+                        rotulo.setDate(comunes.get("fecha", ""))
+                    rotulo.setName(comunes.get("nombre", ""))
+                    rotulo.setCode(comunes.get("codigo", ""))
+                    rotulo.setBatch(comunes.get("lote", ""))
+                    rotulo.setSignature(comunes.get("firma", ""))
 
-            rotulo.dateChanged.connect(self.syncDate)
-            rotulo.nameChanged.connect(self.syncName)
-            rotulo.codeChanged.connect(self.syncCode)
-            rotulo.batchChanged.connect(self.syncBatch)
-            rotulo.signatureChanged.connect(self.syncSignature)
+               
+                if rot_data:
+                    if hasattr(rotulo, "inputMateriaPrima"):
+                        rotulo.inputMateriaPrima.setText(rot_data.get("materiaPrima", ""))
 
-            self.updateRotuloCount()
+                    if hasattr(rotulo, "inputBatchMateriaPrima"):
+                        rotulo.inputBatchMateriaPrima.setText(rot_data.get("loteMateriaPrima", ""))
+
+                    if hasattr(rotulo, "inputCodeMateriaPrima"):
+                        codigo = rot_data.get("codigoMateriaPrima", "")
+                        rotulo.inputCodeMateriaPrima.setText(codigo)
+                        if codigo and codigo != "1000":
+                            rotulo.autofillFromSAP()
+
+                    if hasattr(rotulo, "inputNumControl"):
+                        rotulo.inputNumControl.setText(rot_data.get("numControl", ""))
+
+                    if hasattr(rotulo, "inputPesoNeto"):
+                        rotulo.inputPesoNeto.setText(rot_data.get("peso", ""))
+
+                self.updateRotuloCount()
+        
+        for rotulo in self.rotulos:
+            if hasattr(rotulo, "inputCodeMateriaPrima"):
+                codigo = rotulo.inputCodeMateriaPrima.text().strip()
+                if codigo and codigo != "1000":
+                    rotulo.autofillFromSAP()
+
 
 
     def generatePdf(self):
@@ -245,18 +254,14 @@ class RotWindow(QDialog):
             self.btnSave.setEnabled(False)
 
     def addRotulo(self, rot_data=None, comunes=None):
-    # Crear nuevo rótulo con número consecutivo
         rotulo = RotuloWidget(len(self.rotulos) + 1)
         self.rotulos.append(rotulo)
 
-        # Agregarlo al final del layout (después del stretch siempre)
         self.scrollLayout.addWidget(rotulo)
 
-        # Conectar señales
         self._connectChanges(rotulo)
         rotulo.deleteRequested.connect(self.removeRotulo)
 
-        # 🔥 Obtener campos comunes dinámicamente (del primer rótulo si existe)
         if self.rotulos and not comunes:
             base = self.rotulos[0]
             comunes = {

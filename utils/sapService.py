@@ -64,3 +64,51 @@ class SAPService:
             "lote": batch.get("Batch", "") if batch else "",
             "fechaIngreso": fecha_formateada
         }
+    
+
+    def get_latest_planned_order(self, item_code):
+
+        if not self.logged_in:
+            self.login()
+
+
+        url = (
+            f"{self.base_url}/ProductionOrders"
+            f"?$filter=ProductionOrderStatus eq 'boposPlanned' and ItemNo eq '{item_code}'"
+            "&$orderby=DocumentNumber desc&$top=1"
+        )
+
+        resp = self.session.get(url, verify=False)
+
+        data = resp.json()
+        if "value" not in data or not data["value"]:
+            return None
+
+        order = data["value"][0]
+        doc_entry = order.get("AbsoluteEntry")
+
+        lines_url = f"{self.base_url}/ProductionOrders({doc_entry})?$select=ProductionOrderLines"
+        
+
+        resp_lines = self.session.get(lines_url, verify=False)
+        lines_data = resp_lines.json()
+
+        materias_primas = []
+        if "ProductionOrderLines" in lines_data:
+            for line in lines_data["ProductionOrderLines"]:
+                materias_primas.append(line.get("ItemNo"))
+
+        count_lines = 0
+        if "ProductionOrderLines" in lines_data:
+            count_lines = len(lines_data["ProductionOrderLines"])
+
+        return {
+            "codigo": order.get("ItemNo"),
+            "nombre": order.get("ProductDescription"),
+            "cantidad_rotulos": count_lines,
+            "materias_primas": materias_primas
+        }
+
+
+
+
