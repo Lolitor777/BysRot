@@ -2,11 +2,11 @@
 
 [Setup]
 AppName=BYSROT
-AppVersion=1.0
+AppVersion=2.0
 DefaultDirName={pf}\BYSROT
 DefaultGroupName=BYSROT
 OutputDir=dist
-OutputBaseFilename=setup_BYSROT
+OutputBaseFilename=BysRot_2.0.0_setup
 SetupIconFile=logo_icon.ico
 UninstallDisplayIcon={app}\BYSROT.exe
 Compression=lzma
