@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QPushButton, QWidget, QScroll
 from PyQt6.QtCore import Qt
 import json
 
-from utils.generarPdf import generar_pdf
+from utils.generarPdf import generar_pdf, generar_pdf_58mm
 from utils.storage import guardarPlantilla
 from gui.rotuloWidget import RotuloWidget
 
@@ -14,7 +14,7 @@ class RotWindow(QDialog):
         self.data = data or {}
         self.loadedPath = loadedPath
 
-        # Ventana
+       
         self.setWindowTitle("BysRot")
         self.resize(600, 700)
         self.setFixedWidth(600)
@@ -26,16 +26,16 @@ class RotWindow(QDialog):
         self.labelCount = QLabel("Total rótulos: 0", self)
         self.labelCount.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        scrollArea = QScrollArea(self)
-        scrollArea.setWidgetResizable(True)
+        self.scrollArea = QScrollArea(self)
+        self.scrollArea.setWidgetResizable(True)
         scrollWidget = QWidget()
         self.scrollLayout = QVBoxLayout(scrollWidget)
         self.scrollLayout.addStretch()
         scrollWidget.setLayout(self.scrollLayout)
-        scrollArea.setWidget(scrollWidget)
+        self.scrollArea.setWidget(scrollWidget)
 
         mainLayout = QVBoxLayout(self)
-        mainLayout.addWidget(scrollArea)
+        mainLayout.addWidget(self.scrollArea)
 
         # Botones
         btnLayout = QHBoxLayout()
@@ -63,46 +63,61 @@ class RotWindow(QDialog):
 
         self.btnSave.setEnabled(False)
 
-        # NORMALIZAR entrada
-        raw_rotulos = self.data.get("rotulos", [])
-        # si la plantilla vino con 'comunes', tomarlos; si no, construir a partir de data del primer dialog
-        self.comunes = self.data.get("comunes", {}) or {
-            "fecha": "",
+        
+        self.comunes = self.data.get("comunes", {
+            "fecha": self.data.get("fecha", ""),
             "nombre": self.data.get("nombre", ""),
             "codigo": self.data.get("codigo", ""),
-            "lote": "",
+            "lote": self.data.get("lote", ""),
             "firma": ""
-        }
+        })
 
-        # Caso: rotulos como número (cantidad)
-        if isinstance(raw_rotulos, (str, int)):
-            try:
-                cnt = int(raw_rotulos)
-            except Exception:
-                cnt = 1
-            rotulos_data = [{} for _ in range(cnt)]
-        else:
-            rotulos_data = list(raw_rotulos)  # lista de strings o dicts
+        # 🔥 Crear rótulos desde la plantilla
+        if isinstance(self.data.get("rotulos"), list):
+            for mp in self.data["rotulos"]:
+                if isinstance(mp, dict):
+                    if "codigo" in mp and "cantidad" in mp:
+                        # Datos directos desde SAP
+                        self.addRotulo(rot_data={
+                            "codigoMateriaPrima": mp["codigo"],
+                            "peso": str(mp["cantidad"])
+                        })
+                    else:
+                        
+                        self.addRotulo(rot_data=mp)
 
-        # Si es lista de códigos (strings) -> pasar cada código a addRotulo con comunes
-        if rotulos_data and isinstance(rotulos_data[0], str):
-            for codigo_mp in rotulos_data:
-                self.addRotulo(rot_data={"codigoMateriaPrima": codigo_mp}, comunes=self.comunes)
-        else:
-            # lista de dicts (plantilla guardada) o lista vacía
-            for rot_data in rotulos_data:
-                self.addRotulo(rot_data=rot_data, comunes=self.comunes)
-
-    # ---------- PDF ----------
+    
     def generatePdf(self):
-        ruta, _ = QFileDialog.getSaveFileName(self, "Guardar PDF", "rotulos.pdf", "Archivos PDF (*.pdf)")
+        ruta, _ = QFileDialog.getSaveFileName(
+            self,
+            "Guardar PDF",
+            "rotulos.pdf",
+            "Archivos PDF (*.pdf)"
+        )
         if not ruta:
             return
+
         try:
+            # 1. PDF normal
             generar_pdf(ruta, self.rotulos)
-            QMessageBox.information(self, "Éxito", "PDF generado correctamente ✅")
+
+            # 2. PDF versión 58mm
+            ruta_58 = ruta.replace(".pdf", "_58mm.pdf")
+            generar_pdf_58mm(ruta_58, self.rotulos)
+
+            QMessageBox.information(
+                self,
+                "Éxito",
+                f"Se generaron los PDF correctamente ✅\n\n"
+                f"- Normal: {ruta}\n"
+                f"- 58mm: {ruta_58}"
+            )
         except Exception as e:
-            QMessageBox.critical(self, "Error", f"No se pudo generar el PDF ❌\n{e}")
+            QMessageBox.critical(
+                self,
+                "Error",
+                f"No se pudieron generar los PDF ❌\n{e}"
+            )
 
     # ---------- conectar cambios ----------
     def _connectChanges(self, rotulo):
@@ -129,58 +144,58 @@ class RotWindow(QDialog):
     def enableSave(self):
         self.btnSave.setEnabled(True)
 
-    # ---------- crear / insertar rótulo ----------
     def addRotulo(self, rot_data=None, comunes=None):
-        """Crea un rotulo y lo inserta antes del stretch. comunes por defecto=self.comunes"""
-        if comunes is None:
-            comunes = getattr(self, "comunes", {})
+            if comunes is None:
+                comunes = self.comunes  
 
-        index = len(self.rotulos) + 1
-        rotulo = RotuloWidget(index)
-        # insertar antes del stretch para que quede al final visible
-        insert_pos = max(0, self.scrollLayout.count() - 1)
-        self.scrollLayout.insertWidget(insert_pos, rotulo)
+            index = len(self.rotulos) + 1
+            rotulo = RotuloWidget(index)
 
-        # mantener lista y conectar
-        self.rotulos.append(rotulo)
-        self._connectChanges(rotulo)
-        if hasattr(rotulo, "deleteRequested"):
-            rotulo.deleteRequested.connect(self.removeRotulo)
+            insert_pos = max(0, self.scrollLayout.count() - 1)
+            self.scrollLayout.insertWidget(insert_pos, rotulo)
 
-        # aplicar comunes (si corresponde)
-        if comunes:
-            if rotulo.isDateSynced():
+            self.rotulos.append(rotulo)
+            self._connectChanges(rotulo)
+            if hasattr(rotulo, "deleteRequested"):
+                rotulo.deleteRequested.connect(self.removeRotulo)
+
+            if comunes:
                 rotulo.setDate(comunes.get("fecha", ""))
-            rotulo.setName(comunes.get("nombre", ""))
-            rotulo.setCode(comunes.get("codigo", ""))
-            rotulo.setBatch(comunes.get("lote", ""))
-            rotulo.setSignature(comunes.get("firma", ""))
+                rotulo.setName(comunes.get("nombre", ""))
+                rotulo.setCode(comunes.get("codigo", ""))
+                rotulo.setBatch(comunes.get("lote", ""))
+                rotulo.setSignature(comunes.get("firma", ""))
 
-        # si viene rot_data: aplicarlo
-        if isinstance(rot_data, dict):
-            if hasattr(rotulo, "inputMateriaPrima"):
-                rotulo.inputMateriaPrima.setText(rot_data.get("materiaPrima", ""))
-            if hasattr(rotulo, "inputBatchMateriaPrima"):
-                rotulo.inputBatchMateriaPrima.setText(rot_data.get("loteMateriaPrima", ""))
-            if hasattr(rotulo, "inputCodeMateriaPrima"):
-                codigo_mp = rot_data.get("codigoMateriaPrima", "")
-                rotulo.inputCodeMateriaPrima.setText(codigo_mp)
-                # AUTO-LLENAR desde SAP si llega código válido y distinto al placeholder "1000"
-                if codigo_mp and codigo_mp != "1000":
-                    try:
+
+            if isinstance(rot_data, dict):
+                if hasattr(rotulo, "inputMateriaPrima"):
+                    rotulo.inputMateriaPrima.setText(rot_data.get("materiaPrima", ""))
+
+                if hasattr(rotulo, "inputBatchMateriaPrima"):
+                    rotulo.inputBatchMateriaPrima.setText(rot_data.get("loteMateriaPrima", ""))
+
+                if hasattr(rotulo, "inputCodeMateriaPrima"):
+                    codigo_mp = rot_data.get("codigoMateriaPrima", "")
+                    rotulo.inputCodeMateriaPrima.setText(codigo_mp)
+                    if codigo_mp and codigo_mp != "1000":
                         rotulo.autofillFromSAP()
-                    except Exception:
-                        # no bloquear la UI si autofill falla
-                        pass
-            if hasattr(rotulo, "inputNumControl"):
-                rotulo.inputNumControl.setText(rot_data.get("numControl", ""))
-            if hasattr(rotulo, "inputPesoNeto"):
-                rotulo.inputPesoNeto.setText(rot_data.get("peso", ""))
 
-        # actualizar estado
-        self.enableSave()
-        self.updateRotuloCount()
-        return rotulo
+                if hasattr(rotulo, "inputNumControl"):
+                    num_control = rot_data.get("numControl")
+                    if num_control:
+                        rotulo.inputNumControl.setText(num_control)
+
+                if hasattr(rotulo, "inputPesoNeto"):
+                    rotulo.inputPesoNeto.setText(rot_data.get("peso", ""))
+
+                # Si trae fechaIndependiente, sobrescribe la común
+                if rot_data.get("fechaIndependiente") and hasattr(rotulo, "inputDate"):
+                    rotulo.inputDate.setText(rot_data.get("fecha", ""))
+
+            self.enableSave()
+            self.updateRotuloCount()
+            return rotulo
+
 
     def removeRotulo(self, rotulo):
         if rotulo in self.rotulos:
@@ -190,11 +205,24 @@ class RotWindow(QDialog):
             self.enableSave()
             self.updateRotuloCount()
 
-    # ---------- recoger plantilla ----------
+    
     def getTemplateData(self):
         if not self.rotulos:
             return {}
-        rot0 = self.rotulos[0]
+
+        # Buscar el primer rótulo con datos comunes válidos
+        rot0 = None
+        for r in self.rotulos:
+            if (hasattr(r, "inputDate") and r.inputDate.text()) or \
+            (hasattr(r, "inputName") and r.inputName.text()) or \
+            (hasattr(r, "inputCode") and r.inputCode.text()) or \
+            (hasattr(r, "inputBatch") and r.inputBatch.text()):
+                rot0 = r
+                break
+
+        if not rot0:
+            rot0 = self.rotulos[0]
+
         comunes = {
             "fecha": rot0.inputDate.text() if hasattr(rot0, 'inputDate') else "",
             "nombre": rot0.inputName.text() if hasattr(rot0, 'inputName') else "",
@@ -202,6 +230,7 @@ class RotWindow(QDialog):
             "lote": rot0.inputBatch.text() if hasattr(rot0, 'inputBatch') else "",
             "firma": rot0.inputSignature.text() if hasattr(rot0, 'inputSignature') else ""
         }
+
         rotulos = []
         for rot in self.rotulos:
             rotulos.append({
@@ -213,9 +242,11 @@ class RotWindow(QDialog):
                 "fechaIndependiente": not rot.isDateSynced(),
                 "fecha": rot.inputDate.text() if hasattr(rot, 'inputDate') else ""
             })
+
         return {'comunes': comunes, 'rotulos': rotulos}
 
-    # ---------- guardar ----------
+
+    
     def saveTemplate(self):
         template = self.getTemplateData()
         if not template:
@@ -230,7 +261,7 @@ class RotWindow(QDialog):
                 return
         else:
             codigo = self.data.get("codigo", "").strip()
-            nombre = self.data.get("nombre", "").strip()
+            nombre = self.data.get("nombrePlantilla", "").strip()
             peso = self.data.get("peso", "").strip()
             filename = f"{codigo} - {nombre} - {peso}kg"
             guardarPlantilla(filename, template)
@@ -288,3 +319,6 @@ class RotWindow(QDialog):
                 event.ignore()
         else:
             event.accept()
+    
+    def scrollToWidget(self, widget):
+        self.scrollArea.ensureWidgetVisible(widget)

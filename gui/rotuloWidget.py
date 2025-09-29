@@ -2,6 +2,7 @@ from PyQt6.QtWidgets import QWidget, QMessageBox
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QIntValidator
 from PyQt6 import uic
+from PyQt6.QtCore import Qt, QEvent
 
 from utils.sapService import SAPService
 from absoluteRouts import resource_path
@@ -62,6 +63,7 @@ class RotuloWidget(QWidget):
         if hasattr(self, 'inputTara'):
             validator = QIntValidator(0, 999999, self) 
             self.inputTara.setValidator(validator)
+            self.inputTara.installEventFilter(self)
 
         if hasattr(self, 'inputPesoNeto'):
             validator = QIntValidator(0, 999999, self)
@@ -76,27 +78,34 @@ class RotuloWidget(QWidget):
 
 
     def autofillFromSAP(self):
+        """Rellena automáticamente los datos de la materia prima desde SAP"""
         codigo = self.inputCodeMateriaPrima.text().strip()
         if not codigo:
             return
+
         try:
             data = sap.get_item_and_batches(codigo)
-            if data:
-                self.inputMateriaPrima.setText(data["nombre"])
-                self.inputBatchMateriaPrima.setText(data["lote"])
-                self.inputNumControl.setText(data["fechaIngreso"])
+            if not data:
+                return
 
-                if len(codigo) >= 4:
-                    ultimos_4 = codigo[-4:]  
-                    fecha = data["fechaIngreso"] or ""
-                    num_control = f"{ultimos_4}{fecha}"
-                    if hasattr(self, "inputNumControl"):
-                        self.inputNumControl.setText(num_control)
+            if hasattr(self, "inputMateriaPrima"):
+                self.inputMateriaPrima.setText(data.get("nombre", ""))
 
-            else:
-                QMessageBox.warning(self, "SAP", f"No se encontró el código {codigo} en SAP")
+            if hasattr(self, "inputBatchMateriaPrima"):
+                self.inputBatchMateriaPrima.setText(data.get("lote", ""))
+
+           
+            ultimos4 = codigo[-4:] if len(codigo) >= 4 else codigo
+            fecha = data.get("fechaIngreso", "")
+            num_control = f"{ultimos4}{fecha}" if fecha else ultimos4
+
+            if hasattr(self, "inputNumControl"):
+                self.inputNumControl.setText(num_control)
+
         except Exception as e:
-            QMessageBox.critical(self, "Error SAP", str(e))
+            print(f"Error en autofillFromSAP: {e}")
+
+
 
     def emitDate(self, text: str):
         self.dateChanged.emit(text)
@@ -118,10 +127,10 @@ class RotuloWidget(QWidget):
 
     def updatePesoBruto(self):
         try:
-            tara = int(self.inputTara.text()) if self.inputTara.text() else 0
-            neto = int(self.inputPesoNeto.text()) if self.inputPesoNeto.text() else 0
+            tara = float(self.inputTara.text()) if self.inputTara.text() else 0.0
+            neto = float(self.inputPesoNeto.text()) if self.inputPesoNeto.text() else 0.0
             bruto = tara + neto
-            self.inputPesoBruto.setText(str(bruto) + " g")
+            self.inputPesoBruto.setText(f"{bruto:.2f} g")
         except ValueError:
             self.inputPesoBruto.setText("")
 
@@ -137,6 +146,13 @@ class RotuloWidget(QWidget):
     def setCode(self, text):
         if hasattr(self, "inputCode") and self.inputCode.text() != text:
             self.inputCode.setText(text)
+
+    def setMateriaPrimaCode(self, codigo: str):
+        
+        if hasattr(self, "inputCodeMateriaPrima"):
+            self.inputCodeMateriaPrima.setText(codigo.strip())
+            if codigo.strip() and codigo.strip() != "1000":
+                self.autofillFromSAP()
 
     def setBatch(self, text):
         if hasattr(self, "inputBatch") and self.inputBatch.text() != text:
@@ -156,3 +172,24 @@ class RotuloWidget(QWidget):
     
     def requestDelete(self):
         self.deleteRequested.emit(self)
+
+    def eventFilter(self, obj, event):
+        if obj is getattr(self, "inputTara", None) and event.type() == QEvent.Type.KeyPress:
+            if event.key() == Qt.Key.Key_Tab:
+                self.focusNextTara()
+                return True
+            if event.key() == Qt.Key.Key_Backtab:
+                self.focusPrevTara()
+                return True
+        return super().eventFilter(obj, event)
+
+    def focusNextTara(self):
+        rot_window = self.window()
+        if hasattr(rot_window, "rotulos"):
+            idx = rot_window.rotulos.index(self)
+            if idx < len(rot_window.rotulos) - 1:
+                next_tara = rot_window.rotulos[idx + 1].inputTara
+                next_tara.setFocus()
+                rot_window.scrollArea.ensureWidgetVisible(next_tara)
+
+    

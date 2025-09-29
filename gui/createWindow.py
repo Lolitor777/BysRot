@@ -16,6 +16,7 @@ class CreateWindow(QDialog):
         super().__init__()
         uic.loadUi(resource_path('gui/createWindow.ui'), self)
         self.latest_order = None
+        self.nameProduct = ""
 
         self.buttonCreate.clicked.connect(self.accept)
         self.buttonCancel.clicked.connect(self.reject)
@@ -38,6 +39,10 @@ class CreateWindow(QDialog):
         codigo = self.inputCodeProduct.text().strip()
         nombre = self.inputNameProduct.text().strip()
         peso = self.inputKg.text().strip()
+        
+        if "/" in nombre:
+            QMessageBox.warning(self, "Caracter erroneo","Windows no permite guardar archivo con el caracter '/'. ❌")
+            return
 
         if not codigo or not nombre or not peso:
             QMessageBox.warning(self, "Campos vacíos", "Por favor, complete todos los campos antes de continuar. ❌")
@@ -47,7 +52,6 @@ class CreateWindow(QDialog):
             QMessageBox.warning(self, "Peso inválido", "El peso debe ser mayor a 0. ⚖️")
             return
 
-        # Validar que se haya obtenido información de SAP
         if not self.latest_order:
             self.fetchProductionOrder()
             if not self.latest_order:
@@ -78,10 +82,11 @@ class CreateWindow(QDialog):
 
             self.latest_order = order
             cantidad = order.get('cantidad_rotulos', 0)
-            
+            self.nameProduct = order.get('nombre', 'N/A')
+
             QMessageBox.information(
                 self, "Orden encontrada ✅",
-                f"Producto: {order.get('nombre', 'N/A')}\n"
+                f"Producto: {self.nameProduct}\n"
                 f"Código: {order.get('codigo', 'N/A')}\n"
                 f"Se generarán {cantidad} rótulos (materias primas)."
             )
@@ -91,14 +96,14 @@ class CreateWindow(QDialog):
             self.latest_order = None
 
     def getData(self):
-        cantidad_rotulos = 0
         materias_primas = []
         if self.latest_order and "cantidad_rotulos" in self.latest_order:
             cantidad_rotulos = self.latest_order["cantidad_rotulos"]
             materias_primas = self.latest_order.get("materias_primas", [])
         
         return {
-            'nombre': self.inputNameProduct.text().strip(),
+            'nombrePlantilla': self.inputNameProduct.text().strip(),
+            'nombre': self.nameProduct,
             'codigo': self.inputCodeProduct.text().strip(),
             'peso': self.inputKg.text().strip(),
             "rotulos": materias_primas 

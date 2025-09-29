@@ -1,7 +1,15 @@
 
 from PyQt6.QtPrintSupport import QPrinter
 from PyQt6.QtGui import QPainter, QPageSize, QRegion
-from PyQt6.QtCore import QRect, QPoint, Qt
+from PyQt6.QtCore import QRect, QPoint
+
+
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+
+pdfmetrics.registerFont(UnicodeCIDFont('HeiseiKakuGo-W5'))
 
 def generar_pdf(ruta, rotulos):
    
@@ -96,3 +104,48 @@ def generar_pdf(ruta, rotulos):
 
     painter.end()
     return True
+
+
+
+
+
+def generar_pdf_58mm(ruta, rotulos):
+    """Genera un PDF térmico de 58mm con un rótulo por página"""
+    # Ancho de 58mm = 164 puntos
+    page_width = 164
+    page_height = 300  # altura aprox. por etiqueta, puedes ajustar
+
+    doc = SimpleDocTemplate(
+        ruta,
+        pagesize=(page_width, page_height),
+        rightMargin=5, leftMargin=5,
+        topMargin=5, bottomMargin=5
+    )
+
+    doc.title = "Rótulos 58mm"
+    doc.author = "BysRot"
+    doc.subject = "Etiquetas de materia prima"
+    doc.creator = "BysRot - PyQt6"
+
+    styles = getSampleStyleSheet()
+    normal = styles["Normal"]
+
+    elementos = []
+
+    for idx, rot in enumerate(rotulos):
+        nombre = rot.inputMateriaPrima.text() if hasattr(rot, 'inputMateriaPrima') else ""
+        tara = rot.inputTara.text() if hasattr(rot, 'inputTara') else ""
+        neto = rot.inputPesoNeto.text() if hasattr(rot, 'inputPesoNeto') else ""
+        bruto = rot.inputPesoBruto.text() if hasattr(rot, 'inputPesoBruto') else ""
+
+        elementos.append(Paragraph(f"<b>Materia Prima:</b> {nombre}", normal))
+        elementos.append(Spacer(1, 5))
+        elementos.append(Paragraph(f"<b>Tara:</b> {tara} g", normal))
+        elementos.append(Paragraph(f"<b>Peso Neto:</b> {neto} g", normal))
+        elementos.append(Paragraph(f"<b>Peso Bruto:</b> {bruto}", normal))
+
+        # 🔥 Agregar salto de página salvo en el último
+        if idx < len(rotulos) - 1:
+            elementos.append(PageBreak())
+
+    doc.build(elementos)

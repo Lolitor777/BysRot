@@ -67,19 +67,15 @@ class SAPService:
     
 
     def get_latest_planned_order(self, item_code):
-
         if not self.logged_in:
             self.login()
-
 
         url = (
             f"{self.base_url}/ProductionOrders"
             f"?$filter=ProductionOrderStatus eq 'boposPlanned' and ItemNo eq '{item_code}'"
             "&$orderby=DocumentNumber desc&$top=1"
         )
-
         resp = self.session.get(url, verify=False)
-
         data = resp.json()
         if "value" not in data or not data["value"]:
             return None
@@ -87,27 +83,28 @@ class SAPService:
         order = data["value"][0]
         doc_entry = order.get("AbsoluteEntry")
 
-        lines_url = f"{self.base_url}/ProductionOrders({doc_entry})?$select=ProductionOrderLines"
-        
-
+        # pedir líneas con cantidades
+        lines_url = f"{self.base_url}/ProductionOrders({doc_entry})?$select=ProductionOrderLines,ProductionOrderStatus,PlannedQuantity"
         resp_lines = self.session.get(lines_url, verify=False)
         lines_data = resp_lines.json()
 
         materias_primas = []
         if "ProductionOrderLines" in lines_data:
             for line in lines_data["ProductionOrderLines"]:
-                materias_primas.append(line.get("ItemNo"))
-
-        count_lines = 0
-        if "ProductionOrderLines" in lines_data:
-            count_lines = len(lines_data["ProductionOrderLines"])
+                materias_primas.append({
+                    "codigo": line.get("ItemNo"),
+                    "cantidad": line.get("PlannedQuantity", 0)   # cantidad planificada de esa MP
+                })
 
         return {
             "codigo": order.get("ItemNo"),
             "nombre": order.get("ProductDescription"),
-            "cantidad_rotulos": count_lines,
-            "materias_primas": materias_primas
+            "lote": order.get("Warehouse"),   # aquí depende de tu SAP: si tienes Batch/Lote asociado
+            "cantidad_rotulos": len(materias_primas),
+            "materias_primas": materias_primas,
+            "cantidad_final": lines_data.get("PlannedQuantity", 0)  # cantidad del producto final
         }
+
 
 
 
