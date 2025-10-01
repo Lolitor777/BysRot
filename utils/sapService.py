@@ -102,9 +102,29 @@ class SAPService:
             "lote": order.get("Warehouse"),   # aquí depende de tu SAP: si tienes Batch/Lote asociado
             "cantidad_rotulos": len(materias_primas),
             "materias_primas": materias_primas,
-            "cantidad_final": lines_data.get("PlannedQuantity", 0)  # cantidad del producto final
+            "cantidad_final": lines_data.get("PlannedQuantity", 0),  # cantidad del producto final
+            "doc_entry": doc_entry,
+            "estado_orden": lines_data.get("ProductionOrderStatus", "boposPlanned") 
         }
+    
 
+    def liberar_orden(self, doc_entry: int):
+        url = f"{self.base_url}/ProductionOrders({doc_entry})"
+        payload = {
+            "ProductionOrderStatus": "boposReleased"
+        }
+        resp = self.session.patch(url, json=payload, verify=False)
+        if resp.status_code == 204:
+            return True
+        else:
+            raise Exception(f"Error liberando orden {doc_entry}: {resp.text}")
+
+sap = SAPService(
+    user="manager",   
+    password="2609",  
+    company_db="PRUEBAS_AVANTIS_MAY14",
+    base_url="https://byspro.heinsohncloud.com.co:50000/b1s/v2"
+)
 
 
 

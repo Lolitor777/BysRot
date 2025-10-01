@@ -6,6 +6,8 @@ import json
 from utils.generarPdf import generar_pdf, generar_pdf_58mm
 from utils.storage import guardarPlantilla
 from gui.rotuloWidget import RotuloWidget
+from utils.sapService import sap
+
 
 
 class RotWindow(QDialog):
@@ -13,6 +15,9 @@ class RotWindow(QDialog):
         super().__init__()
         self.data = data or {}
         self.loadedPath = loadedPath
+
+        self.doc_entry = self.data.get("doc_entry")
+        self.estado_orden = self.data.get("estado_orden", "boposPlanned")
 
        
         self.setWindowTitle("BysRot")
@@ -42,9 +47,10 @@ class RotWindow(QDialog):
         self.btnAdd = QPushButton("Añadir rótulo ➕")
         self.btnSave = QPushButton("Guardar plantilla 📁")
         self.btnPdf = QPushButton("Generar PDF 📋")
+        self.btnLiberar = QPushButton("Liberar orden 🔓")
 
-        for btn in (self.btnAdd, self.btnSave, self.btnPdf):
-            btn.setFixedSize(150, 40)
+        for btn in (self.btnAdd, self.btnSave, self.btnPdf, self.btnLiberar):
+            btn.setFixedSize(130, 40)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setDefault(False)
             btn.setAutoDefault(False)
@@ -52,10 +58,15 @@ class RotWindow(QDialog):
         self.btnAdd.clicked.connect(lambda: self.addRotulo(comunes=self.comunes if hasattr(self, "comunes") else None))
         self.btnSave.clicked.connect(self.saveTemplate)
         self.btnPdf.clicked.connect(self.generatePdf)
+        self.btnLiberar.clicked.connect(self.liberarOrden)
+
+        if self.estado_orden == "boposReleased":
+            self.btnLiberar.setEnabled(False)
 
         btnLayout.addWidget(self.btnAdd)
         btnLayout.addWidget(self.btnSave)
         btnLayout.addWidget(self.btnPdf)
+        btnLayout.addWidget(self.btnLiberar)
 
         mainLayout.addWidget(self.labelCount)
         mainLayout.addLayout(btnLayout)
@@ -64,13 +75,14 @@ class RotWindow(QDialog):
         self.btnSave.setEnabled(False)
 
         
-        self.comunes = self.data.get("comunes", {
+        self.comunes = self.data.get("comunes") or {
             "fecha": self.data.get("fecha", ""),
             "nombre": self.data.get("nombre", ""),
             "codigo": self.data.get("codigo", ""),
             "lote": self.data.get("lote", ""),
             "firma": ""
-        })
+        }
+
 
         # 🔥 Crear rótulos desde la plantilla
         if isinstance(self.data.get("rotulos"), list):
@@ -145,56 +157,45 @@ class RotWindow(QDialog):
         self.btnSave.setEnabled(True)
 
     def addRotulo(self, rot_data=None, comunes=None):
-            if comunes is None:
-                comunes = self.comunes  
+        comunes = comunes or self.comunes
+        index = len(self.rotulos) + 1
+        rotulo = RotuloWidget(index)
 
-            index = len(self.rotulos) + 1
-            rotulo = RotuloWidget(index)
+        insert_pos = max(0, self.scrollLayout.count() - 1)
+        self.scrollLayout.insertWidget(insert_pos, rotulo)
+        self.rotulos.append(rotulo)
+        self._connectChanges(rotulo)
 
-            insert_pos = max(0, self.scrollLayout.count() - 1)
-            self.scrollLayout.insertWidget(insert_pos, rotulo)
+        if hasattr(rotulo, "deleteRequested"):
+            rotulo.deleteRequested.connect(self.removeRotulo)
 
-            self.rotulos.append(rotulo)
-            self._connectChanges(rotulo)
-            if hasattr(rotulo, "deleteRequested"):
-                rotulo.deleteRequested.connect(self.removeRotulo)
+        # Aplicar comunes
+        rotulo.setDate(comunes.get("fecha", ""))
+        rotulo.setName(comunes.get("nombre", ""))
+        rotulo.setCode(comunes.get("codigo", ""))
+        rotulo.setBatch(comunes.get("lote", ""))
+        rotulo.setSignature(comunes.get("firma", ""))
 
-            if comunes:
-                rotulo.setDate(comunes.get("fecha", ""))
-                rotulo.setName(comunes.get("nombre", ""))
-                rotulo.setCode(comunes.get("codigo", ""))
-                rotulo.setBatch(comunes.get("lote", ""))
-                rotulo.setSignature(comunes.get("firma", ""))
+        # Aplicar datos individuales si hay
+        if isinstance(rot_data, dict):
+            if "codigoMateriaPrima" in rot_data:
+                rotulo.inputCodeMateriaPrima.setText(rot_data["codigoMateriaPrima"])
+                if rot_data["codigoMateriaPrima"] and rot_data["codigoMateriaPrima"] != "1000":
+                    rotulo.autofillFromSAP()
 
+            if "peso" in rot_data:
+                rotulo.inputPesoNeto.setText(rot_data["peso"])
 
-            if isinstance(rot_data, dict):
-                if hasattr(rotulo, "inputMateriaPrima"):
-                    rotulo.inputMateriaPrima.setText(rot_data.get("materiaPrima", ""))
+            if "numControl" in rot_data:
+                rotulo.inputNumControl.setText(rot_data["numControl"])
 
-                if hasattr(rotulo, "inputBatchMateriaPrima"):
-                    rotulo.inputBatchMateriaPrima.setText(rot_data.get("loteMateriaPrima", ""))
+            if rot_data.get("fechaIndependiente"):
+                rotulo.inputDate.setText(rot_data.get("fecha", ""))
 
-                if hasattr(rotulo, "inputCodeMateriaPrima"):
-                    codigo_mp = rot_data.get("codigoMateriaPrima", "")
-                    rotulo.inputCodeMateriaPrima.setText(codigo_mp)
-                    if codigo_mp and codigo_mp != "1000":
-                        rotulo.autofillFromSAP()
+        self.enableSave()
+        self.updateRotuloCount()
+        return rotulo
 
-                if hasattr(rotulo, "inputNumControl"):
-                    num_control = rot_data.get("numControl")
-                    if num_control:
-                        rotulo.inputNumControl.setText(num_control)
-
-                if hasattr(rotulo, "inputPesoNeto"):
-                    rotulo.inputPesoNeto.setText(rot_data.get("peso", ""))
-
-                # Si trae fechaIndependiente, sobrescribe la común
-                if rot_data.get("fechaIndependiente") and hasattr(rotulo, "inputDate"):
-                    rotulo.inputDate.setText(rot_data.get("fecha", ""))
-
-            self.enableSave()
-            self.updateRotuloCount()
-            return rotulo
 
 
     def removeRotulo(self, rotulo):
@@ -322,3 +323,21 @@ class RotWindow(QDialog):
     
     def scrollToWidget(self, widget):
         self.scrollArea.ensureWidgetVisible(widget)
+
+    
+    def liberarOrden(self):
+
+        if not self.doc_entry:
+            QMessageBox.warning(self, "Error", "No se encontró el DocEntry de la orden ❌")
+            return
+
+        try:
+            ok = sap.liberar_orden(self.doc_entry)
+            if ok:
+                self.estado_orden = "boposReleased"
+                self.btnLiberar.setEnabled(False)  # 🔒 Se deshabilita
+                QMessageBox.information(self, "Éxito", f"La orden {self.doc_entry} fue liberada ✅")
+            else:
+                QMessageBox.critical(self, "Error", f"No se pudo liberar la orden {self.doc_entry}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Ocurrió un error liberando la orden:\n{e}")
