@@ -1,26 +1,38 @@
-; Script de Inno Setup para instalar BYSROT
+
+#define MyAppName "BysRot"
+#define MyAppVersion "2.0.2"
+#define MyAppPublisher "Byspro"
+#define MyAppExeName "BysRot.exe"
+#define MyAppIcon "icon.ico"
 
 [Setup]
-AppName=BYSROT
-AppVersion=2.0
-DefaultDirName={pf}\BYSROT
-DefaultGroupName=BYSROT
-OutputDir=dist
-OutputBaseFilename=BysRot_2.0.0_setup
-SetupIconFile=logo_icon.ico
-UninstallDisplayIcon={app}\BYSROT.exe
+AppId={{A1B2C3D4-E5F6-1234-5678-9ABCDEF01234}}
+AppName={#MyAppName}
+AppVersion={#MyAppVersion}
+AppPublisher={#MyAppPublisher}
+DefaultDirName={pf}\{#MyAppName}
+DefaultGroupName={#MyAppName}
+UninstallDisplayIcon={app}\{#MyAppIcon}
+SetupIconFile={#MyAppIcon}
 Compression=lzma
 SolidCompression=yes
+OutputDir=dist\installer
+OutputBaseFilename=BysRot_Installer
+ArchitecturesInstallIn64BitMode=x64
+DisableProgramGroupPage=yes
 
 [Languages]
 Name: "spanish"; MessagesFile: "compiler:Languages\Spanish.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
+Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "Iconos adicionales:"; Flags: unchecked
 
 [Files]
-Source: "dist\BYSROT.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\BysRot\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\BYSROT"; Filename: "{app}\BYSROT.exe"
-Name: "{commondesktop}\BYSROT"; Filename: "{app}\BYSROT.exe"; Tasks: desktopicon
+Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+
+[Run]
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}}"; Flags: nowait postinstall skipifsilent

@@ -119,12 +119,83 @@ class SAPService:
         else:
             raise Exception(f"Error liberando orden {doc_entry}: {resp.text}")
 
+
+    
+
+    def entregar_componentes(self, doc_entry: int, rotulos: list):
+    
+
+        if not self.logged_in:
+            self.login()
+
+        movimientos = []
+
+        for rot in rotulos:
+            codigo = rot.get("codigoMateriaPrima")
+            cantidad = float(rot.get("peso", 0) or 0)
+            if not codigo or cantidad <= 0:
+                continue
+
+            # 🔎 Buscar el lote más viejo disponible (AdmissionDate asc)
+            lote_url = (
+                f"{self.base_url}/BatchNumberDetails?"
+                f"$filter=ItemCode eq '{codigo}' and Quantity gt 0 and Warehouse eq '04' "
+                f"&$orderby=AdmissionDate asc"
+            )
+            lote_resp = self.session.get(lote_url, verify=False).json()
+
+            if "value" not in lote_resp or not lote_resp["value"]:
+                raise Exception(f"No se encontró lote disponible con stock para el item {codigo}")
+
+            lote = lote_resp["value"][0]["Batch"]
+
+            movimientos.append({
+                "ItemCode": codigo,
+                "Quantity": cantidad,
+                "WarehouseCode": "04",   
+                "AccountCode": '1410',
+                "BatchNumbers": [
+                    {"BatchNumber": lote, "Quantity": cantidad}
+                ]
+            })
+
+        if not movimientos:
+            raise Exception("No se generaron líneas para la entrega")
+
+        payload = {
+            "DocDate": datetime.now().strftime("%Y-%m-%d"),
+            "Comments": f"Consumo automático desde BysRot. Orden {doc_entry}",
+            "JournalMemo": f"Consumo OF {doc_entry}",
+            # Relacionar con la orden (si tu versión soporta esto)
+            "U_BYSROT_OF": doc_entry,   # 🔥 Puedes usar un campo de usuario para trazar
+            "DocumentLines": movimientos
+        }
+
+        url = f"{self.base_url}/InventoryGenExits"
+        resp = self.session.post(url, json=payload, verify=False)
+
+        if resp.status_code in (200, 201):
+            return resp.json()
+        else:
+            raise Exception(f"Error en entrega: {resp.status_code} {resp.text}")
+        
+
+
 sap = SAPService(
     user="manager",   
     password="2609",  
-    company_db="PRUEBAS_AVANTIS_MAY14",
+    company_db="SBOLabAvantis",
     base_url="https://byspro.heinsohncloud.com.co:50000/b1s/v2"
 )
+
+
+
+
+
+    
+    
+
+
 
 
 

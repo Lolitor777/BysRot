@@ -3,7 +3,7 @@ from PyQt6.QtWidgets import (QDialog, QVBoxLayout, QPushButton, QWidget, QScroll
 from PyQt6.QtCore import Qt
 import json
 
-from utils.generarPdf import generar_pdf, generar_pdf_58mm
+from utils.generarPdf import generar_pdf, generar_pdf_72mm
 from utils.storage import guardarPlantilla
 from gui.rotuloWidget import RotuloWidget
 from utils.sapService import sap
@@ -43,14 +43,18 @@ class RotWindow(QDialog):
         mainLayout.addWidget(self.scrollArea)
 
         # Botones
-        btnLayout = QHBoxLayout()
+        btnLayoutTop = QHBoxLayout()
+        btnLayoutBottom = QHBoxLayout()
         self.btnAdd = QPushButton("Añadir rótulo ➕")
         self.btnSave = QPushButton("Guardar plantilla 📁")
         self.btnPdf = QPushButton("Generar PDF 📋")
         self.btnLiberar = QPushButton("Liberar orden 🔓")
+        self.btnEntregar = QPushButton("Entregar componentes 📦")
 
-        for btn in (self.btnAdd, self.btnSave, self.btnPdf, self.btnLiberar):
-            btn.setFixedSize(130, 40)
+        
+
+        for btn in (self.btnAdd, self.btnSave, self.btnPdf, self.btnLiberar, self.btnEntregar):
+            btn.setFixedSize(150, 40)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setDefault(False)
             btn.setAutoDefault(False)
@@ -59,17 +63,27 @@ class RotWindow(QDialog):
         self.btnSave.clicked.connect(self.saveTemplate)
         self.btnPdf.clicked.connect(self.generatePdf)
         self.btnLiberar.clicked.connect(self.liberarOrden)
+        self.btnEntregar.clicked.connect(self.entregarComponentes)
 
         if self.estado_orden == "boposReleased":
             self.btnLiberar.setEnabled(False)
+            self.btnEntregar.setEnabled(True)   
+        else:
+            self.btnLiberar.setEnabled(True)
+            self.btnEntregar.setEnabled(False)
 
-        btnLayout.addWidget(self.btnAdd)
-        btnLayout.addWidget(self.btnSave)
-        btnLayout.addWidget(self.btnPdf)
-        btnLayout.addWidget(self.btnLiberar)
+        btnLayoutTop.addWidget(self.btnAdd)
+        btnLayoutTop.addWidget(self.btnSave)
+        btnLayoutTop.addWidget(self.btnPdf)
+
+        btnLayoutBottom.addWidget(self.btnLiberar)
+        btnLayoutBottom.addWidget(self.btnEntregar)
 
         mainLayout.addWidget(self.labelCount)
-        mainLayout.addLayout(btnLayout)
+        mainLayout.addLayout(btnLayoutTop)
+        mainLayout.addLayout(btnLayoutBottom)
+
+
         self.setLayout(mainLayout)
 
         self.btnSave.setEnabled(False)
@@ -110,19 +124,18 @@ class RotWindow(QDialog):
             return
 
         try:
-            # 1. PDF normal
+            
             generar_pdf(ruta, self.rotulos)
-
-            # 2. PDF versión 58mm
-            ruta_58 = ruta.replace(".pdf", "_58mm.pdf")
-            generar_pdf_58mm(ruta_58, self.rotulos)
+            
+            ruta_58 = ruta.replace(".pdf", "_72mm.pdf")
+            generar_pdf_72mm(ruta_58, self.rotulos)
 
             QMessageBox.information(
                 self,
                 "Éxito",
                 f"Se generaron los PDF correctamente ✅\n\n"
                 f"- Normal: {ruta}\n"
-                f"- 58mm: {ruta_58}"
+                f"- 72mm: {ruta_58}"
             )
         except Exception as e:
             QMessageBox.critical(
@@ -233,18 +246,12 @@ class RotWindow(QDialog):
         }
 
         rotulos = []
-        for rot in self.rotulos:
-            rotulos.append({
-                "materiaPrima": rot.inputMateriaPrima.text() if hasattr(rot, 'inputMateriaPrima') else "",
-                "loteMateriaPrima": rot.inputBatchMateriaPrima.text() if hasattr(rot, 'inputBatchMateriaPrima') else "",
-                "codigoMateriaPrima": rot.inputCodeMateriaPrima.text() if hasattr(rot, 'inputCodeMateriaPrima') else "",
-                "numControl": rot.inputNumControl.text() if hasattr(rot, 'inputNumControl') else "",
-                "peso": rot.inputPesoNeto.text() if hasattr(rot, 'inputPesoNeto') else "",
-                "fechaIndependiente": not rot.isDateSynced(),
-                "fecha": rot.inputDate.text() if hasattr(rot, 'inputDate') else ""
-            })
-
-        return {'comunes': comunes, 'rotulos': rotulos}
+        rotulos = [rot.getData() for rot in self.rotulos]
+        return {'comunes': comunes, 
+                'rotulos': rotulos, 
+                'doc_entry': self.doc_entry, 
+                'estado_orden': self.estado_orden
+                }
 
 
     
@@ -335,9 +342,34 @@ class RotWindow(QDialog):
             ok = sap.liberar_orden(self.doc_entry)
             if ok:
                 self.estado_orden = "boposReleased"
-                self.btnLiberar.setEnabled(False)  # 🔒 Se deshabilita
+                self.btnLiberar.setEnabled(False)
+                self.btnEntregar.setEnabled(True)  # 🔒 Se deshabilita
                 QMessageBox.information(self, "Éxito", f"La orden {self.doc_entry} fue liberada ✅")
             else:
                 QMessageBox.critical(self, "Error", f"No se pudo liberar la orden {self.doc_entry}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Ocurrió un error liberando la orden:\n{e}")
+
+
+    def entregarComponentes(self):
+        if not self.doc_entry:
+            QMessageBox.warning(self, "Error", "No se encontró el DocEntry de la orden ❌")
+            return
+
+        seleccionados = []
+        for rot in self.rotulos:
+            if hasattr(rot, "checkEntregar") and rot.checkEntregar.isChecked():
+                seleccionados.append({
+                    "codigoMateriaPrima": rot.inputCodeMateriaPrima.text(),
+                    "peso": rot.inputPesoNeto.text(),
+                })
+
+        if not seleccionados:
+            QMessageBox.warning(self, "Atención", "Debe seleccionar al menos un rótulo para entregar.")
+            return
+
+        try:
+            result = sap.entregar_componentes(self.doc_entry, seleccionados)
+            QMessageBox.information(self, "Éxito", f"Se entregaron los componentes ✅\nDocNum SAP: {result.get('DocNum')}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Ocurrió un error en la entrega:\n{e}")

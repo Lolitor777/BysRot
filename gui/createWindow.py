@@ -9,7 +9,7 @@ from utils.sapService import SAPService
 sap = SAPService(
     user="manager",
     password="2609",
-    company_db="PRUEBAS_AVANTIS_MAY14",
+    company_db="SBOLabAvantis",
     base_url="https://byspro.heinsohncloud.com.co:50000/b1s/v2"
 )
 

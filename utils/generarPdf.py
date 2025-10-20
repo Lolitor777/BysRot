@@ -92,6 +92,9 @@ def generar_pdf(ruta, rotulos):
         if hasattr(rotulo, "btnDelete"):
             rotulo.btnDelete.hide()
         
+        if hasattr(rotulo, "checkEntregar"):
+            rotulo.checkEntregar.hide()
+        
         rotulo.render(painter, QPoint(0, 0), QRegion(source_rect))
         
         if hasattr(rotulo, "checkSyncDate"):
@@ -99,6 +102,9 @@ def generar_pdf(ruta, rotulos):
 
         if hasattr(rotulo, "btnDelete"):
             rotulo.btnDelete.show()
+        
+        if hasattr(rotulo, "checkEntregar"):
+            rotulo.checkEntregar.show()
             
         painter.restore()
 
@@ -106,14 +112,12 @@ def generar_pdf(ruta, rotulos):
     return True
 
 
-
-
-
-def generar_pdf_58mm(ruta, rotulos):
+def generar_pdf_72mm(ruta, rotulos):
     """Genera un PDF térmico de 58mm con un rótulo por página"""
-    # Ancho de 58mm = 164 puntos
-    page_width = 164
-    page_height = 300  # altura aprox. por etiqueta, puedes ajustar
+    
+    
+    page_width = 72 * 2.83465  # ≈ 164 pt
+    page_height = 50 * 2.83465  # ≈ 230 pt
 
     doc = SimpleDocTemplate(
         ruta,
@@ -122,7 +126,7 @@ def generar_pdf_58mm(ruta, rotulos):
         topMargin=5, bottomMargin=5
     )
 
-    doc.title = "Rótulos 58mm"
+    doc.title = "Rótulos 72mm"
     doc.author = "BysRot"
     doc.subject = "Etiquetas de materia prima"
     doc.creator = "BysRot - PyQt6"
@@ -130,22 +134,32 @@ def generar_pdf_58mm(ruta, rotulos):
     styles = getSampleStyleSheet()
     normal = styles["Normal"]
 
+    normal.alignment = 1
+
     elementos = []
 
-    for idx, rot in enumerate(rotulos):
+    # ✅ corregimos enumerate (solo queremos el objeto, no el índice)
+    for rot in rotulos:
+        nombreProducto = rot.inputName.text() if hasattr(rot, 'inputName') else ""
+        lote = rot.inputBatch.text() if hasattr(rot, 'inputBatch') else ""
         nombre = rot.inputMateriaPrima.text() if hasattr(rot, 'inputMateriaPrima') else ""
         tara = rot.inputTara.text() if hasattr(rot, 'inputTara') else ""
         neto = rot.inputPesoNeto.text() if hasattr(rot, 'inputPesoNeto') else ""
         bruto = rot.inputPesoBruto.text() if hasattr(rot, 'inputPesoBruto') else ""
 
-        elementos.append(Paragraph(f"<b>Materia Prima:</b> {nombre}", normal))
-        elementos.append(Spacer(1, 5))
-        elementos.append(Paragraph(f"<b>Tara:</b> {tara} g", normal))
-        elementos.append(Paragraph(f"<b>Peso Neto:</b> {neto} g", normal))
-        elementos.append(Paragraph(f"<b>Peso Bruto:</b> {bruto}", normal))
-
-        # 🔥 Agregar salto de página salvo en el último
-        if idx < len(rotulos) - 1:
-            elementos.append(PageBreak())
+        elementos.extend([
+            Paragraph(f"<b>{nombreProducto}</b>", normal),
+            Paragraph(f"<b>{lote}</b>", normal),
+            Paragraph(f"<b>Materia Prima:</b> {nombre}", normal),
+            Paragraph(f"<b>Tara:</b> {tara} g", normal),
+            Paragraph(f"<b>Peso Neto:</b> {neto} g", normal),
+            Paragraph(f"<b>Peso Bruto:</b> {bruto} g", normal),
+            Spacer(1, 20),
+            PageBreak()  
+        ])
 
     doc.build(elementos)
+
+
+
+

@@ -11,7 +11,7 @@ from absoluteRouts import resource_path
 sap = SAPService(
     user="manager",
     password="2609",
-    company_db="PRUEBAS_AVANTIS_MAY14",
+    company_db="SBOLabAvantis",
     base_url="https://byspro.heinsohncloud.com.co:50000/b1s/v2"
 )
 
@@ -57,6 +57,10 @@ class RotuloWidget(QWidget):
         if hasattr(self, 'checkUseGlobalDate'):
             self.checkUseGlobalDate.setChecked(True)
             self.checkUseGlobalDate.stateChanged.connect(self.emitUseGlobalDate)
+        
+        # Rotulo para entrega
+        if hasattr(self, 'checkEntregar'):
+            self.checkEntregar.setChecked(True)
 
         # Validadores
         if hasattr(self, 'inputTara'):
@@ -204,3 +208,18 @@ class RotuloWidget(QWidget):
                 prev_tara.setFocus()
                 if hasattr(rot_window, "scrollToWidget"):
                     rot_window.scrollToWidget(prev_tara)
+
+    
+    def getData(self):
+        return {
+            "materiaPrima": self.inputMateriaPrima.text() if hasattr(self, 'inputMateriaPrima') else "",
+            "loteMateriaPrima": self.inputBatchMateriaPrima.text() if hasattr(self, 'inputBatchMateriaPrima') else "",
+            "codigoMateriaPrima": self.inputCodeMateriaPrima.text() if hasattr(self, 'inputCodeMateriaPrima') else "",
+            "numControl": self.inputNumControl.text() if hasattr(self, 'inputNumControl') else "",
+            "peso": self.inputPesoNeto.text() if hasattr(self, 'inputPesoNeto') else "",
+            "fechaIndependiente": not self.isDateSynced(),
+            "fecha": self.inputDate.text() if hasattr(self, 'inputDate') else "",
+            "entregar": self.checkEntregar.isChecked() if hasattr(self, "checkEntregar") else True,
+            "usarFechaGlobal": self.checkUseGlobalDate.isChecked() if hasattr(self, "checkUseGlobalDate") else True
+        }
+
