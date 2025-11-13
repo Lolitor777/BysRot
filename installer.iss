@@ -1,6 +1,6 @@
 
 #define MyAppName "BysRot"
-#define MyAppVersion "2.0.2"
+#define MyAppVersion "2.0.3"
 #define MyAppPublisher "Byspro"
 #define MyAppExeName "BysRot.exe"
 #define MyAppIcon "icon.ico"
