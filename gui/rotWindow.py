@@ -47,13 +47,14 @@ class RotWindow(QDialog):
         btnLayoutBottom = QHBoxLayout()
         self.btnAdd = QPushButton("Añadir rótulo ➕")
         self.btnSave = QPushButton("Guardar plantilla 📁")
-        self.btnPdf = QPushButton("Generar PDF 📋")
+        self.btnPdfNormal = QPushButton("Generar PDF 📋")
+        self.btnPdf72mm = QPushButton("Generar PDF 72mm✏️")
         self.btnLiberar = QPushButton("Liberar orden 🔓")
         self.btnEntregar = QPushButton("Entregar componentes 📦")
 
         
 
-        for btn in (self.btnAdd, self.btnSave, self.btnPdf, self.btnLiberar, self.btnEntregar):
+        for btn in (self.btnAdd, self.btnSave, self.btnPdfNormal, self.btnPdf72mm, self.btnLiberar, self.btnEntregar):
             btn.setFixedSize(150, 40)
             btn.setCursor(Qt.CursorShape.PointingHandCursor)
             btn.setDefault(False)
@@ -61,7 +62,8 @@ class RotWindow(QDialog):
 
         self.btnAdd.clicked.connect(lambda: self.addRotulo(comunes=self.comunes if hasattr(self, "comunes") else None))
         self.btnSave.clicked.connect(self.saveTemplate)
-        self.btnPdf.clicked.connect(self.generatePdf)
+        self.btnPdfNormal.clicked.connect(self.generatePdfNormal)  # NUEVA CONEXIÓN
+        self.btnPdf72mm.clicked.connect(self.generatePdf72mm) 
         self.btnLiberar.clicked.connect(self.liberarOrden)
         self.btnEntregar.clicked.connect(self.entregarComponentes)
 
@@ -74,8 +76,9 @@ class RotWindow(QDialog):
 
         btnLayoutTop.addWidget(self.btnAdd)
         btnLayoutTop.addWidget(self.btnSave)
-        btnLayoutTop.addWidget(self.btnPdf)
-
+        btnLayoutTop.addWidget(self.btnPdfNormal)
+        
+        btnLayoutBottom.addWidget(self.btnPdf72mm )
         btnLayoutBottom.addWidget(self.btnLiberar)
         btnLayoutBottom.addWidget(self.btnEntregar)
 
@@ -113,35 +116,56 @@ class RotWindow(QDialog):
                         self.addRotulo(rot_data=mp)
 
     
-    def generatePdf(self):
+    def generatePdfNormal(self):
+        """Genera el PDF normal"""  
         ruta, _ = QFileDialog.getSaveFileName(
             self,
-            "Guardar PDF",
-            "rotulos.pdf",
+            "Guardar PDF Normal",  
+            "rotulos.pdf",         
             "Archivos PDF (*.pdf)"
         )
         if not ruta:
             return
 
         try:
-            
-            generar_pdf(ruta, self.rotulos)
-            
-            ruta_58 = ruta.replace(".pdf", "_72mm.pdf")
-            generar_pdf_72mm(ruta_58, self.rotulos)
-
+            generar_pdf(ruta, self.rotulos)  
             QMessageBox.information(
                 self,
                 "Éxito",
-                f"Se generaron los PDF correctamente ✅\n\n"
-                f"- Normal: {ruta}\n"
-                f"- 72mm: {ruta_58}"
+                f"Se generó el PDF correctamente ✅\n\n"  
             )
         except Exception as e:
             QMessageBox.critical(
                 self,
                 "Error",
-                f"No se pudieron generar los PDF ❌\n{e}"
+                f"No se pudo generar el PDF ❌\n{e}"  
+            )
+
+
+    def generatePdf72mm(self):
+        """Genera el PDF de 72mm"""  
+        ruta, _ = QFileDialog.getSaveFileName(
+            self,
+            "Guardar PDF 72mm",      # CAMBIO: Título específico  
+            "rotulos_72mm.pdf",      # CAMBIO: Nombre por defecto
+            "Archivos PDF (*.pdf)"
+        )
+        if not ruta:
+            return
+
+        try:
+            generar_pdf_72mm(ruta, self.rotulos)  # Solo genera PDF 72mm
+            QMessageBox.information(
+                self,
+                "Éxito",
+                f"Se generó el PDF 72mm correctamente ✅\n\n"  # CAMBIO: Mensaje específico
+                f"Ruta: {ruta}"
+            )
+        except Exception as e:
+            QMessageBox.critical(
+                self,
+                "Error", 
+                f"No se pudo generar el PDF 72mm ❌\n{e}"  # CAMBIO: Mensaje específico
             )
 
     # ---------- conectar cambios ----------

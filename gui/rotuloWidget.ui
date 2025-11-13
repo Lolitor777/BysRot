@@ -132,6 +132,20 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QLabel" name="label">
+            <property name="font">
+             <font>
+              <family>Calibri</family>
+              <pointsize>14</pointsize>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>(g)</string>
+            </property>
+           </widget>
+          </item>
          </layout>
         </item>
         <item>
@@ -163,6 +177,20 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_2">
+            <property name="font">
+             <font>
+              <family>Calibri</family>
+              <pointsize>14</pointsize>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>(g)</string>
             </property>
            </widget>
           </item>
@@ -478,6 +506,20 @@ border-bottom: 1px solid black; background-color: transparent;</string>
             </property>
             <property name="alignment">
              <set>Qt::AlignmentFlag::AlignCenter</set>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_3">
+            <property name="font">
+             <font>
+              <family>Calibri</family>
+              <pointsize>14</pointsize>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>(g)</string>
             </property>
            </widget>
           </item>
